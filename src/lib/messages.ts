@@ -10,7 +10,7 @@ export interface EnsureContentScriptInjectedMessage {
 
 // Starts an element-picking session on the given tab via the debugger
 // protocol (see background/picker.ts) — the response only acknowledges the
-// session started; the picked element itself arrives later as a separate
+// session started; the picked element's HTML arrives later as a separate
 // push message (PickerSelectedMessage), since the user's click can come long
 // after this call returns.
 export interface PickerStartMessage {
@@ -32,10 +32,12 @@ export interface CommandAck {
 }
 
 // Background -> Panel (chrome.runtime.sendMessage, pushed whenever the
-// active picking session ends, successfully or not).
+// active picking session ends, successfully or not). `html` is the picked
+// element's outerHTML — the panel converts it to Markdown itself (via
+// Turndown, which needs a real DOM the service worker doesn't have).
 export interface PickerSelectedMessage {
   type: 'picker/selected';
-  selector: string;
+  html: string;
 }
 
 export interface PickerCancelledMessage {

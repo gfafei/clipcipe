@@ -14,13 +14,15 @@ import { TemplateListView } from './views/TemplateListView';
 import { TemplateEditorView } from './views/TemplateEditorView';
 import { PreviewView } from './views/PreviewView';
 import { SettingsView } from './views/SettingsView';
+import { QuickClipView } from './views/QuickClipView';
 
 type View =
   | { kind: 'list' }
   | { kind: 'create' }
   | { kind: 'edit'; template: Template }
   | { kind: 'preview'; template: Template }
-  | { kind: 'settings' };
+  | { kind: 'settings' }
+  | { kind: 'quickClip' };
 
 export function App() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -167,10 +169,13 @@ export function App() {
           syncing={syncing}
           syncMessage={syncMessage}
           onOpenSettings={() => setView({ kind: 'settings' })}
+          onQuickClip={() => setView({ kind: 'quickClip' })}
         />
       )}
 
       {view.kind === 'settings' && <SettingsView onBack={() => setView({ kind: 'list' })} />}
+
+      {view.kind === 'quickClip' && <QuickClipView onBack={() => setView({ kind: 'list' })} />}
 
       {view.kind === 'create' && (
         <TemplateEditorView

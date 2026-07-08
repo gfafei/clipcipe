@@ -2,26 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CommandAck, PickerEvent } from '../../lib/messages';
 import { getActiveTab } from './useMessaging';
 
-export interface PickTarget {
-  fieldIndex: number;
-  selectorIndex: number;
-}
-
 // Drives the debugger-backed element picker (see background/picker.ts) from
-// the side panel: tracks which selector input a pick is destined for, listens
-// for the (asynchronous, push-style) result, and cleans up if the editor
-// unmounts mid-pick.
-export function useElementPicker(onPicked: (target: PickTarget, selector: string) => void) {
-  const [picking, setPicking] = useState<PickTarget | null>(null);
+// the side panel: starts a pick session on the active tab, listens for the
+// (asynchronous, push-style) result, and cleans up if the caller unmounts
+// mid-pick. `onPicked` receives the picked element's raw outerHTML.
+export function usePagePicker(onPicked: (html: string) => void) {
+  const [picking, setPicking] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
-  const pickingRef = useRef<PickTarget | null>(null);
+  const pickingRef = useRef(false);
 
   useEffect(() => {
     pickingRef.current = picking;
   }, [picking]);
 
   const cancel = useCallback(() => {
-    setPicking(null);
+    setPicking(false);
     void chrome.runtime.sendMessage({ type: 'picker/stop' });
   }, []);
 
@@ -29,11 +24,11 @@ export function useElementPicker(onPicked: (target: PickTarget, selector: string
     function handleMessage(message: PickerEvent) {
       if (!pickingRef.current) return;
       if (message.type === 'picker/selected') {
-        onPicked(pickingRef.current, message.selector);
-        setPicking(null);
+        onPicked(message.html);
+        setPicking(false);
       } else if (message.type === 'picker/cancelled') {
         setPickError(message.reason);
-        setPicking(null);
+        setPicking(false);
       }
     }
     chrome.runtime.onMessage.addListener(handleMessage);
@@ -49,31 +44,33 @@ export function useElementPicker(onPicked: (target: PickTarget, selector: string
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [picking, cancel]);
 
-  // Stop any in-flight session if the editor unmounts mid-pick.
+  // Stop any in-flight session if the caller unmounts mid-pick.
   useEffect(() => {
     return () => {
       if (pickingRef.current) void chrome.runtime.sendMessage({ type: 'picker/stop' });
     };
   }, []);
 
-  const start = useCallback(async (target: PickTarget) => {
+  const start = useCallback(async (): Promise<chrome.tabs.Tab | undefined> => {
     setPickError(null);
     const tab = await getActiveTab().catch((error: unknown) => {
       setPickError(error instanceof Error ? error.message : 'No active tab found.');
       return undefined;
     });
-    if (!tab?.id) return;
+    if (!tab?.id) return undefined;
     if (!/^https?:\/\//.test(tab.url ?? '')) {
       setPickError("Can't pick elements on this kind of page. Open a regular web page and try again.");
-      return;
+      return undefined;
     }
 
-    setPicking(target);
+    setPicking(true);
     const response = (await chrome.runtime.sendMessage({ type: 'picker/start', tabId: tab.id })) as CommandAck;
     if (!response?.ok) {
       setPickError(response?.error ?? 'Failed to start picking.');
-      setPicking(null);
+      setPicking(false);
+      return undefined;
     }
+    return tab;
   }, []);
 
   return { picking, pickError, start, cancel };

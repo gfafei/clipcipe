@@ -5,8 +5,13 @@
 // from a content script cannot do. Trade-off: attaching shows Chrome's
 // persistent "is debugging this browser" infobar, and only one debugger
 // client (this or real DevTools) can attach to a tab at a time.
+//
+// Picking hands back the picked element's raw outerHTML rather than a CSS
+// selector — a selector like `p` or `div.byline` matches many elements on
+// the page, not specifically the one the user clicked, so it's useless for
+// reliably re-extracting "that one thing" later. The panel converts the HTML
+// to Markdown itself and clips it directly.
 import type { CommandAck } from '../lib/messages';
-import { attributesFromFlatArray, selectorFromNode } from '../lib/selectorFromNode';
 
 // At most one picking session runs at a time — starting a new one implicitly
 // cancels whatever was running before.
@@ -59,31 +64,27 @@ export async function startPicking(tabId: number): Promise<CommandAck> {
   }
 }
 
-interface DescribeNodeResult {
-  node: { nodeName: string; attributes?: string[] };
+interface GetOuterHtmlResult {
+  outerHTML: string;
 }
 
-function notifyPanel(event: { type: 'picker/selected'; selector: string } | { type: 'picker/cancelled'; reason: string }) {
+function notifyPanel(event: { type: 'picker/selected'; html: string } | { type: 'picker/cancelled'; reason: string }) {
   // No listener (side panel closed) just means this rejects — nothing to do about it.
   void chrome.runtime.sendMessage(event).catch(() => {});
 }
 
 async function handleInspectNodeRequested(tabId: number, backendNodeId: number): Promise<void> {
   try {
-    const result = (await chrome.debugger.sendCommand({ tabId }, 'DOM.describeNode', {
+    const result = (await chrome.debugger.sendCommand({ tabId }, 'DOM.getOuterHTML', {
       backendNodeId,
-    })) as unknown as DescribeNodeResult;
-    const selector = selectorFromNode({
-      tagName: result.node.nodeName,
-      attributes: attributesFromFlatArray(result.node.attributes),
-    });
+    })) as unknown as GetOuterHtmlResult;
     await stopPicking();
-    notifyPanel({ type: 'picker/selected', selector });
+    notifyPanel({ type: 'picker/selected', html: result.outerHTML });
   } catch (error) {
     await stopPicking();
     notifyPanel({
       type: 'picker/cancelled',
-      reason: error instanceof Error ? error.message : 'Failed to resolve the picked element.',
+      reason: error instanceof Error ? error.message : 'Failed to read the picked element.',
     });
   }
 }

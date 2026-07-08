@@ -11,6 +11,7 @@ interface TemplateListViewProps {
   syncing: boolean;
   syncMessage: string | null;
   onOpenSettings: () => void;
+  onQuickClip: () => void;
 }
 
 export function TemplateListView({
@@ -24,6 +25,7 @@ export function TemplateListView({
   syncing,
   syncMessage,
   onOpenSettings,
+  onQuickClip,
 }: TemplateListViewProps) {
   return (
     <div>
@@ -37,6 +39,9 @@ export function TemplateListView({
       >
         <h1 style={{ fontSize: 18, margin: 0 }}>Templates</h1>
         <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={onQuickClip} style={secondaryButtonStyle}>
+            Quick clip
+          </button>
           <button onClick={onOpenSettings} style={secondaryButtonStyle}>
             Settings
           </button>

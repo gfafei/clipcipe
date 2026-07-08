@@ -1,6 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { createEmptyField, type Field, type TemplateDraft } from '../../lib/types';
-import { useElementPicker, type PickTarget } from '../hooks/useElementPicker';
 
 interface TemplateEditorViewProps {
   initialDraft: TemplateDraft;
@@ -83,11 +82,6 @@ export function TemplateEditorView({
       return { ...current, fields };
     });
   }
-
-  const handlePicked = useCallback((target: PickTarget, selector: string) => {
-    updateSelector(target.fieldIndex, target.selectorIndex, selector);
-  }, []);
-  const { picking, pickError, start: startPicking, cancel: cancelPicking } = useElementPicker(handlePicked);
 
   function addField() {
     patch({ fields: [...draft.fields, createEmptyField()] });
@@ -178,42 +172,6 @@ export function TemplateEditorView({
         </div>
       )}
 
-      {pickError && (
-        <div
-          style={{
-            background: '#fdecea',
-            color: '#b71c1c',
-            padding: '8px 10px',
-            borderRadius: 4,
-            fontSize: 12,
-            marginBottom: 12,
-          }}
-        >
-          {pickError}
-        </div>
-      )}
-
-      {picking && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: '#e8f0fe',
-            color: '#174ea6',
-            padding: '8px 10px',
-            borderRadius: 4,
-            fontSize: 12,
-            marginBottom: 12,
-          }}
-        >
-          <span>Click an element in the page to select it — Esc to cancel</span>
-          <button onClick={cancelPicking} style={{ ...linkButtonStyle, color: '#174ea6' }}>
-            Cancel
-          </button>
-        </div>
-      )}
-
       <div style={fieldGroupStyle}>
         <label style={labelStyle}>Name</label>
         <input
@@ -284,16 +242,6 @@ export function TemplateEditorView({
                     updateSelector(fieldIndex, selectorIndex, e.target.value)
                   }
                 />
-                <button
-                  onClick={() => startPicking({ fieldIndex, selectorIndex })}
-                  disabled={!!picking}
-                  style={iconButtonStyle}
-                  title="Pick an element on the page"
-                >
-                  {picking?.fieldIndex === fieldIndex && picking?.selectorIndex === selectorIndex
-                    ? '…'
-                    : '⌖'}
-                </button>
                 <button
                   onClick={() => removeSelector(fieldIndex, selectorIndex)}
                   style={iconButtonStyle}
