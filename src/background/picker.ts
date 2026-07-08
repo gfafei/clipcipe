@@ -19,7 +19,13 @@ let activeTabId: number | null = null;
 
 async function disableInspectMode(tabId: number): Promise<void> {
   try {
-    await chrome.debugger.sendCommand({ tabId }, 'Overlay.setInspectMode', { mode: 'none' });
+    // Chrome's CDP implementation requires highlightConfig even for mode
+    // "none" — omitting it fails with "highlight configuration parameter is
+    // missing", so an (unused) config is passed regardless of mode.
+    await chrome.debugger.sendCommand({ tabId }, 'Overlay.setInspectMode', {
+      mode: 'none',
+      highlightConfig: {},
+    });
   } catch (error) {
     console.debug('[clipcipe] Overlay.setInspectMode(none) failed (tab may already be gone):', error);
   }
