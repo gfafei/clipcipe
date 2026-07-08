@@ -3,7 +3,7 @@
   "name": "Clipcipe",
   "version": "0.1.0",
   "description": "Clip web pages to Markdown using per-site templates.",
-  "permissions": ["storage", "scripting", "sidePanel", "activeTab", "alarms", "tabs"],
+  "permissions": ["storage", "scripting", "sidePanel", "activeTab", "alarms", "tabs", "debugger"],
   "optional_permissions": [],
   "host_permissions": [],
   "optional_host_permissions": ["<all_urls>"],
