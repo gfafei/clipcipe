@@ -1,9 +1,8 @@
 # Clipcipe
 
-A Chrome extension (Manifest V3) that clips web pages to Markdown using per-site
-templates: a URL match rule plus CSS selectors for each field (title, author,
-body, ...), rendered through a small formatter template. See [PLAN.md](./PLAN.md)
-for the full design and phased build plan.
+A Chrome extension (Manifest V3) that clips web pages to Markdown, either via a
+saved per-site template (a URL glob pattern plus CSS selectors for each field,
+rendered through a small formatter template) or via a one-off element pick.
 
 ## Status
 
@@ -12,16 +11,17 @@ Implemented so far:
 - Template CRUD (create/edit/delete), stored locally in `chrome.storage.local`
 - Content-script extraction: selector-based field extraction, HTML→Markdown
   via Turndown, Mozilla Readability fallback for fields that don't match
-- Side panel preview: rendered Markdown view, raw source view, copy to
-  clipboard
-- URL match auto-select: on side-panel load and on page refresh, the
-  highest-priority matching template is selected and extracted automatically
+- Side panel preview: rendered Markdown view
+- URL match auto-select: on side-panel load and on page refresh, the first
+  matching template is selected and extracted automatically
+- Point-and-click element picker (via `chrome.debugger` + DevTools' own
+  inspect-element protocol) driving a standalone "Quick clip" flow — pick an
+  element, get its Markdown, upload — with no template involved
 - Optional REST API integration (see [Configuration](#configuration)):
-  manual template sync ("Sync now") and clip upload ("Upload to server")
+  manual template sync ("Sync now") and clip upload ("Upload")
 
-Not yet implemented: point-and-click element picker, highlight-on-type,
-offline upload retry queue, and store-listing polish. See PLAN.md's phase
-table for the full roadmap.
+Not yet implemented: highlight-on-type, offline upload retry queue, and
+store-listing polish.
 
 ## Setup
 
@@ -52,10 +52,9 @@ side panel if you changed anything under `src/sidepanel`.
 ## Configuration
 
 Template storage and clip upload can optionally talk to a backend implementing
-the REST contract described in PLAN.md (`GET/POST /templates`,
-`PUT/DELETE /templates/:id`, `POST /clips`). Without one configured, templates
-just stay in local storage and the "Sync now"/"Upload to server" actions will
-show an error.
+a small REST contract (`GET/POST /templates`, `PUT/DELETE /templates/:id`,
+`POST /clips`). Without one configured, templates just stay in local storage
+and the "Sync now"/"Upload" actions will show an error.
 
 - `VITE_API_BASE_URL` (`.env`, see `.env.example`) — the backend's base URL.
   Baked in at build time; changing it requires a rebuild.

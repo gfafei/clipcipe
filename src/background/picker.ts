@@ -26,16 +26,16 @@ async function disableInspectMode(tabId: number): Promise<void> {
       mode: 'none',
       highlightConfig: {},
     });
-  } catch (error) {
-    console.debug('[clipcipe] Overlay.setInspectMode(none) failed (tab may already be gone):', error);
+  } catch {
+    // tab may already be gone — nothing to clean up
   }
 }
 
 async function detach(tabId: number): Promise<void> {
   try {
     await chrome.debugger.detach({ tabId });
-  } catch (error) {
-    console.debug('[clipcipe] debugger.detach failed (already detached?):', error);
+  } catch {
+    // already detached
   }
 }
 
@@ -45,7 +45,6 @@ export async function stopPicking(): Promise<void> {
   activeTabId = null;
   await disableInspectMode(tabId);
   await detach(tabId);
-  console.debug('[clipcipe] picker stopped, debugger detached for tab', tabId);
 }
 
 export async function startPicking(tabId: number): Promise<CommandAck> {
@@ -81,7 +80,6 @@ function notifyPanel(event: { type: 'picker/selected'; html: string } | { type: 
 }
 
 async function handleInspectNodeRequested(tabId: number, backendNodeId: number): Promise<void> {
-  console.debug('[clipcipe] element picked, stopping debugger session for tab', tabId);
   try {
     const result = (await chrome.debugger.sendCommand({ tabId }, 'DOM.getOuterHTML', {
       backendNodeId,
