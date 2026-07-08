@@ -112,12 +112,6 @@ export function QuickClipView({ onBack }: QuickClipViewProps) {
 
       {picked && (
         <>
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>Title</label>
-            <input style={inputStyle} value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
-          <label style={{ ...labelStyle, marginBottom: 4 }}>Markdown preview</label>
           <style>{markdownPreviewCss}</style>
           <div
             className="clipcipe-markdown-preview"
@@ -129,25 +123,6 @@ export function QuickClipView({ onBack }: QuickClipViewProps) {
     </div>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 12,
-  fontWeight: 600,
-  marginBottom: 4,
-  color: '#333',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '6px 8px',
-  fontSize: 13,
-  border: '1px solid #ccc',
-  borderRadius: 4,
-};
-
-const fieldGroupStyle: React.CSSProperties = { marginBottom: 14 };
 
 const errorStyle: React.CSSProperties = {
   background: '#fdecea',
