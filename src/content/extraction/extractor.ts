@@ -17,20 +17,6 @@ export interface ExtractionResult {
   sourceUrl: string;
 }
 
-// Attributes whose values are resolved against the page URL — selectors that
-// pull an `href`/`src` off a relative link/image otherwise produce a markdown
-// link that's broken outside the page it was clipped from.
-const URL_ATTRIBUTES = new Set(['href', 'src']);
-
-function resolveUrlIfNeeded(attrName: string, value: string, baseUrl: string): string {
-  if (!URL_ATTRIBUTES.has(attrName)) return value;
-  try {
-    return new URL(value, baseUrl).toString();
-  } catch {
-    return value;
-  }
-}
-
 // Nested ad/related-content blocks are stripped on a clone so the live page
 // is never mutated by a preview extraction.
 function withExcluded(element: Element, excludeSelectors: string[] | undefined): Element {
@@ -42,7 +28,7 @@ function withExcluded(element: Element, excludeSelectors: string[] | undefined):
   return clone;
 }
 
-function extractField(field: Field, root: ParentNode, baseUrl: string): FieldResult {
+function extractField(field: Field, root: ParentNode): FieldResult {
   for (const selector of field.selectors) {
     if (!selector) continue;
     let element: Element | null;
@@ -53,23 +39,8 @@ function extractField(field: Field, root: ParentNode, baseUrl: string): FieldRes
     }
     if (!element) continue;
 
-    if (field.attribute === 'text') {
-      const scoped = withExcluded(element, field.excludeSelectors);
-      return { key: field.key, raw: scoped.textContent?.trim() ?? '', matchedSelector: selector };
-    }
-    if (field.attribute === 'html') {
-      const scoped = withExcluded(element, field.excludeSelectors);
-      return { key: field.key, raw: scoped.innerHTML, matchedSelector: selector };
-    }
-
-    const attrName = field.attribute.slice('attr:'.length);
-    const attrValue = element.getAttribute(attrName);
-    if (attrValue == null) continue;
-    return {
-      key: field.key,
-      raw: resolveUrlIfNeeded(attrName, attrValue, baseUrl),
-      matchedSelector: selector,
-    };
+    const scoped = withExcluded(element, field.excludeSelectors);
+    return { key: field.key, raw: scoped.innerHTML, matchedSelector: selector };
   }
   return { key: field.key, raw: null, matchedSelector: null };
 }
@@ -87,15 +58,14 @@ function fallbackValueForField(
     return article.title || null;
   }
   if (key === 'body' || key === 'content') {
-    if (field.attribute === 'html') return article.contentHtml || null;
-    return article.textContent || null;
+    return article.contentHtml || null;
   }
   return null;
 }
 
 export function runExtraction(template: Template, doc: Document = document): ExtractionResult {
   const baseUrl = doc.location?.href ?? doc.baseURI;
-  const results = template.fields.map((field) => extractField(field, doc, baseUrl));
+  const results = template.fields.map((field) => extractField(field, doc));
 
   let usedReadabilityFallback = false;
   if (results.some((result) => result.raw === null)) {
@@ -117,7 +87,7 @@ export function runExtraction(template: Template, doc: Document = document): Ext
     const field = template.fields[i];
     const result = results[i];
     if (result.raw === null) continue;
-    values[field.key] = field.attribute === 'html' ? htmlToMarkdown(result.raw) : result.raw;
+    values[field.key] = htmlToMarkdown(result.raw);
   }
 
   const missingFieldKeys = results.filter((result) => result.raw === null).map((result) => result.key);

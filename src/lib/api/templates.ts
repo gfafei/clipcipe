@@ -1,4 +1,4 @@
-import type { Field, MatchRule, Template } from '../types';
+import type { Field, Template } from '../types';
 import { apiFetch } from './client';
 
 // Mirrors PLAN.md's TemplateDTO — the same shape as Template minus the
@@ -6,8 +6,7 @@ import { apiFetch } from './client';
 export interface TemplateDTO {
   id: string;
   name: string;
-  matchRule: MatchRule;
-  priority: number;
+  urlPattern: string;
   fields: Field[];
   formatterTemplate: string;
   createdAt: string;

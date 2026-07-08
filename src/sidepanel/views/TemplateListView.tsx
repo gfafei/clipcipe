@@ -97,14 +97,11 @@ export function TemplateListView({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    <span style={{ fontFamily: 'monospace' }}>
-                      {template.matchRule.type}: {template.matchRule.pattern}
-                    </span>
+                    <span style={{ fontFamily: 'monospace' }}>{template.urlPattern}</span>
                   </div>
                   <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
                     {template.fields.length} field
-                    {template.fields.length === 1 ? '' : 's'} · priority{' '}
-                    {template.priority}
+                    {template.fields.length === 1 ? '' : 's'}
                     {template.syncStatus === 'modified' && (
                       <span style={{ color: '#e37400' }}> · unsynced</span>
                     )}

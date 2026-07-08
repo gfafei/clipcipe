@@ -14,8 +14,6 @@ interface PreviewViewProps {
 }
 
 export function PreviewView({ template, loading, error, result, onExtract, onBack }: PreviewViewProps) {
-  const [copied, setCopied] = useState(false);
-  const [tab, setTab] = useState<'preview' | 'source'>('preview');
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -24,13 +22,6 @@ export function PreviewView({ template, loading, error, result, onExtract, onBac
     () => (result ? renderMarkdownToHtml(result.markdown) : ''),
     [result],
   );
-
-  async function handleCopy() {
-    if (!result) return;
-    await navigator.clipboard.writeText(result.markdown);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
 
   async function handleUpload() {
     if (!result) return;
@@ -73,16 +64,11 @@ export function PreviewView({ template, loading, error, result, onExtract, onBac
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button onClick={onExtract} disabled={loading} style={primaryButtonStyle}>
-          {loading ? 'Extracting…' : 'Extract from active tab'}
+          {loading ? 'Extracting…' : 'Extract'}
         </button>
         {result && (
-          <button onClick={handleCopy} style={secondaryButtonStyle}>
-            {copied ? 'Copied!' : 'Copy markdown'}
-          </button>
-        )}
-        {result && (
           <button onClick={handleUpload} disabled={uploading} style={secondaryButtonStyle}>
-            {uploading ? 'Uploading…' : uploaded ? 'Uploaded!' : 'Upload to server'}
+            {uploading ? 'Uploading…' : uploaded ? 'Uploaded!' : 'Upload'}
           </button>
         )}
       </div>
@@ -130,49 +116,13 @@ export function PreviewView({ template, loading, error, result, onExtract, onBac
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <label style={{ ...labelStyle, marginBottom: 0 }}>Markdown preview</label>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button
-                onClick={() => setTab('preview')}
-                style={tab === 'preview' ? tabButtonActiveStyle : tabButtonStyle}
-              >
-                Preview
-              </button>
-              <button
-                onClick={() => setTab('source')}
-                style={tab === 'source' ? tabButtonActiveStyle : tabButtonStyle}
-              >
-                Source
-              </button>
-            </div>
-          </div>
-
-          {tab === 'preview' ? (
-            <>
-              <style>{markdownPreviewCss}</style>
-              <div
-                className="clipcipe-markdown-preview"
-                style={previewBoxStyle}
-                dangerouslySetInnerHTML={{ __html: renderedHtml }}
-              />
-            </>
-          ) : (
-            <textarea
-              readOnly
-              value={result.markdown}
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                minHeight: 260,
-                fontFamily: 'monospace',
-                fontSize: 12,
-                padding: 8,
-                border: '1px solid #ccc',
-                borderRadius: 4,
-              }}
-            />
-          )}
+          <label style={{ ...labelStyle, marginBottom: 4 }}>Markdown preview</label>
+          <style>{markdownPreviewCss}</style>
+          <div
+            className="clipcipe-markdown-preview"
+            style={previewBoxStyle}
+            dangerouslySetInnerHTML={{ __html: renderedHtml }}
+          />
 
           <label style={{ ...labelStyle, marginTop: 12 }}>Extracted fields</label>
           <div style={{ border: '1px solid #e0e0e0', borderRadius: 6 }}>
@@ -240,23 +190,6 @@ const secondaryButtonStyle: React.CSSProperties = {
   borderRadius: 4,
   fontSize: 13,
   cursor: 'pointer',
-};
-
-const tabButtonStyle: React.CSSProperties = {
-  background: '#fff',
-  color: '#555',
-  border: '1px solid #ccc',
-  padding: '3px 10px',
-  borderRadius: 4,
-  fontSize: 11,
-  cursor: 'pointer',
-};
-
-const tabButtonActiveStyle: React.CSSProperties = {
-  ...tabButtonStyle,
-  background: '#e8f0fe',
-  color: '#174ea6',
-  borderColor: '#174ea6',
 };
 
 const previewBoxStyle: React.CSSProperties = {

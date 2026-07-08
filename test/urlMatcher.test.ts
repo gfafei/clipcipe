@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { findMatchingTemplate, isPatternSafe, matchesUrl } from '../src/lib/urlMatcher';
+import { findMatchingTemplate, matchesUrl } from '../src/lib/urlMatcher';
 import type { Template } from '../src/lib/types';
 
 function template(overrides: Partial<Template>): Template {
   return {
     id: overrides.id ?? 'id',
     name: overrides.name ?? 'name',
-    matchRule: overrides.matchRule ?? { type: 'glob', pattern: '*' },
-    priority: overrides.priority ?? 0,
+    urlPattern: overrides.urlPattern ?? '*',
     fields: overrides.fields ?? [],
     formatterTemplate: overrides.formatterTemplate ?? '',
     createdAt: '2024-01-01T00:00:00.000Z',
@@ -19,51 +18,32 @@ function template(overrides: Partial<Template>): Template {
 
 describe('matchesUrl', () => {
   it('matches a glob pattern with a wildcard suffix', () => {
-    expect(matchesUrl({ type: 'glob', pattern: 'https://example.com/blog/*' }, 'https://example.com/blog/post-1')).toBe(true);
-    expect(matchesUrl({ type: 'glob', pattern: 'https://example.com/blog/*' }, 'https://other.com/blog/post-1')).toBe(false);
+    expect(matchesUrl('https://example.com/blog/*', 'https://example.com/blog/post-1')).toBe(true);
+    expect(matchesUrl('https://example.com/blog/*', 'https://other.com/blog/post-1')).toBe(false);
   });
 
-  it('matches a regex pattern', () => {
-    expect(matchesUrl({ type: 'regex', pattern: '^https://example\\.com/\\d+$' }, 'https://example.com/123')).toBe(true);
-    expect(matchesUrl({ type: 'regex', pattern: '^https://example\\.com/\\d+$' }, 'https://example.com/abc')).toBe(false);
-  });
-
-  it('rejects an unsafe (catastrophic-backtracking-shaped) regex', () => {
-    expect(matchesUrl({ type: 'regex', pattern: '(a+)+$' }, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!')).toBe(false);
-  });
-
-  it('rejects an invalid regex instead of throwing', () => {
-    expect(matchesUrl({ type: 'regex', pattern: '(unterminated' }, 'https://example.com')).toBe(false);
-  });
-});
-
-describe('isPatternSafe', () => {
-  it('flags overly long patterns as unsafe', () => {
-    expect(isPatternSafe({ type: 'regex', pattern: 'a'.repeat(501) })).toBe(false);
-  });
-
-  it('treats glob patterns as always safe', () => {
-    expect(isPatternSafe({ type: 'glob', pattern: '(a+)+' })).toBe(true);
+  it('rejects an empty pattern', () => {
+    expect(matchesUrl('', 'https://example.com')).toBe(false);
   });
 });
 
 describe('findMatchingTemplate', () => {
-  it('picks the highest-priority match among multiple candidates', () => {
-    const low = template({ id: 'low', matchRule: { type: 'glob', pattern: '*example.com*' }, priority: 1 });
-    const high = template({ id: 'high', matchRule: { type: 'glob', pattern: '*example.com/blog/*' }, priority: 5 });
-    const result = findMatchingTemplate([low, high], 'https://example.com/blog/post-1');
-    expect(result?.id).toBe('high');
+  it('picks the first template whose pattern matches', () => {
+    const nonMatching = template({ id: 'no-match', urlPattern: '*only-this-site.com*' });
+    const matching = template({ id: 'match', urlPattern: '*example.com/blog/*' });
+    const result = findMatchingTemplate([nonMatching, matching], 'https://example.com/blog/post-1');
+    expect(result?.id).toBe('match');
   });
 
-  it('resolves equal-priority ties to the first template in the input array', () => {
-    const first = template({ id: 'first', matchRule: { type: 'glob', pattern: '*example.com*' }, priority: 3 });
-    const second = template({ id: 'second', matchRule: { type: 'glob', pattern: '*example.com*' }, priority: 3 });
+  it('resolves multiple matches to whichever comes first in the input array', () => {
+    const first = template({ id: 'first', urlPattern: '*example.com*' });
+    const second = template({ id: 'second', urlPattern: '*example.com*' });
     const result = findMatchingTemplate([first, second], 'https://example.com/anything');
     expect(result?.id).toBe('first');
   });
 
   it('returns undefined when nothing matches', () => {
-    const t = template({ matchRule: { type: 'glob', pattern: '*only-this-site.com*' } });
+    const t = template({ urlPattern: '*only-this-site.com*' });
     expect(findMatchingTemplate([t], 'https://example.com')).toBeUndefined();
   });
 });

@@ -2,22 +2,10 @@
 // `TemplateDTO` shape documented in PLAN.md so the local-storage layer built in
 // Phase 1 can later be swapped for the REST-backed one without changing the UI.
 
-export type MatchRuleType = 'glob' | 'regex';
-
-export interface MatchRule {
-  type: MatchRuleType;
-  pattern: string;
-}
-
-// `attribute` selects what to pull from the first matching element: visible
-// text, inner HTML (fed to Turndown), or a named attribute via `attr:<name>`.
-export type FieldAttribute = 'text' | 'html' | `attr:${string}`;
-
 export interface Field {
   key: string;
   // Ordered fallback selectors — first match wins.
   selectors: string[];
-  attribute: FieldAttribute;
   // Nested blocks (ads / related content) stripped before conversion.
   excludeSelectors?: string[];
 }
@@ -29,8 +17,7 @@ export type SyncStatus = 'saved' | 'modified';
 export interface Template {
   id: string;
   name: string;
-  matchRule: MatchRule;
-  priority: number;
+  urlPattern: string;
   fields: Field[];
   formatterTemplate: string;
   createdAt: string;
@@ -42,18 +29,17 @@ export interface Template {
 // timestamps. Used as the create/update input to the repository.
 export type TemplateDraft = Pick<
   Template,
-  'name' | 'matchRule' | 'priority' | 'fields' | 'formatterTemplate'
+  'name' | 'urlPattern' | 'fields' | 'formatterTemplate'
 >;
 
 export function createEmptyField(): Field {
-  return { key: '', selectors: [''], attribute: 'text' };
+  return { key: '', selectors: [''] };
 }
 
 export function createEmptyDraft(): TemplateDraft {
   return {
     name: '',
-    matchRule: { type: 'glob', pattern: '' },
-    priority: 0,
+    urlPattern: '',
     fields: [createEmptyField()],
     formatterTemplate: '',
   };
@@ -62,12 +48,10 @@ export function createEmptyDraft(): TemplateDraft {
 export function draftFromTemplate(template: Template): TemplateDraft {
   return {
     name: template.name,
-    matchRule: { ...template.matchRule },
-    priority: template.priority,
+    urlPattern: template.urlPattern,
     fields: template.fields.map((field) => ({
       key: field.key,
       selectors: [...field.selectors],
-      attribute: field.attribute,
       ...(field.excludeSelectors
         ? { excludeSelectors: [...field.excludeSelectors] }
         : {}),

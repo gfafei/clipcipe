@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  createEmptyField,
-  type Field,
-  type FieldAttribute,
-  type MatchRuleType,
-  type TemplateDraft,
-} from '../../lib/types';
+import { createEmptyField, type Field, type TemplateDraft } from '../../lib/types';
 
 interface TemplateEditorViewProps {
   initialDraft: TemplateDraft;
@@ -32,19 +26,6 @@ const inputStyle: React.CSSProperties = {
 };
 
 const fieldGroupStyle: React.CSSProperties = { marginBottom: 14 };
-
-// A select can't drift into an invalid string the way a freeform text input
-// could (a typo like "Html" used to silently fall through to the attr:<name>
-// branch and extract nothing) — these just map FieldAttribute <-> UI state.
-function attributeMode(attribute: FieldAttribute): 'text' | 'html' | 'attr' {
-  if (attribute === 'text') return 'text';
-  if (attribute === 'html') return 'html';
-  return 'attr';
-}
-
-function attributeName(attribute: FieldAttribute): string {
-  return attribute.startsWith('attr:') ? attribute.slice('attr:'.length) : '';
-}
 
 export function TemplateEditorView({
   initialDraft,
@@ -117,7 +98,7 @@ export function TemplateEditorView({
     return {
       ...input,
       name: input.name.trim(),
-      matchRule: { ...input.matchRule, pattern: input.matchRule.pattern.trim() },
+      urlPattern: input.urlPattern.trim(),
       fields: input.fields.map((field) => ({
         ...field,
         key: field.key.trim(),
@@ -128,7 +109,7 @@ export function TemplateEditorView({
 
   function validate(input: TemplateDraft): string | null {
     if (!input.name) return 'Template name is required.';
-    if (!input.matchRule.pattern) return 'A URL match pattern is required.';
+    if (!input.urlPattern) return 'A URL match pattern is required.';
     if (input.fields.length === 0) return 'Add at least one field.';
     for (const field of input.fields) {
       if (!field.key) return 'Every field needs a key.';
@@ -201,47 +182,13 @@ export function TemplateEditorView({
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, ...fieldGroupStyle }}>
-        <div style={{ flex: '0 0 90px' }}>
-          <label style={labelStyle}>Match type</label>
-          <select
-            style={inputStyle}
-            value={draft.matchRule.type}
-            onChange={(e) =>
-              patch({
-                matchRule: {
-                  ...draft.matchRule,
-                  type: e.target.value as MatchRuleType,
-                },
-              })
-            }
-          >
-            <option value="glob">glob</option>
-            <option value="regex">regex</option>
-          </select>
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>URL pattern</label>
-          <input
-            style={inputStyle}
-            value={draft.matchRule.pattern}
-            placeholder="https://example.com/blog/*"
-            onChange={(e) =>
-              patch({
-                matchRule: { ...draft.matchRule, pattern: e.target.value },
-              })
-            }
-          />
-        </div>
-      </div>
-
       <div style={fieldGroupStyle}>
-        <label style={labelStyle}>Priority</label>
+        <label style={labelStyle}>URL pattern (glob)</label>
         <input
-          style={{ ...inputStyle, width: 100 }}
-          type="number"
-          value={draft.priority}
-          onChange={(e) => patch({ priority: Number(e.target.value) || 0 })}
+          style={inputStyle}
+          value={draft.urlPattern}
+          placeholder="https://example.com/blog/*"
+          onChange={(e) => patch({ urlPattern: e.target.value })}
         />
       </div>
 
@@ -271,44 +218,14 @@ export function TemplateEditorView({
               background: '#fafafa',
             }}
           >
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Key</label>
-                <input
-                  style={inputStyle}
-                  value={field.key}
-                  placeholder="title"
-                  onChange={(e) => updateField(fieldIndex, { key: e.target.value })}
-                />
-              </div>
-              <div style={{ flex: '0 0 110px' }}>
-                <label style={labelStyle}>Attribute</label>
-                <select
-                  style={inputStyle}
-                  value={attributeMode(field.attribute)}
-                  onChange={(e) => {
-                    const mode = e.target.value as 'text' | 'html' | 'attr';
-                    if (mode === 'text') updateField(fieldIndex, { attribute: 'text' });
-                    else if (mode === 'html') updateField(fieldIndex, { attribute: 'html' });
-                    else updateField(fieldIndex, { attribute: `attr:${attributeName(field.attribute)}` });
-                  }}
-                >
-                  <option value="text">text (plain, no formatting)</option>
-                  <option value="html">html (keep formatting → markdown)</option>
-                  <option value="attr">attribute value</option>
-                </select>
-              </div>
-              {attributeMode(field.attribute) === 'attr' && (
-                <div style={{ flex: '0 0 90px' }}>
-                  <label style={labelStyle}>Attr name</label>
-                  <input
-                    style={inputStyle}
-                    value={attributeName(field.attribute)}
-                    placeholder="href"
-                    onChange={(e) => updateField(fieldIndex, { attribute: `attr:${e.target.value}` })}
-                  />
-                </div>
-              )}
+            <div style={{ marginBottom: 8 }}>
+              <label style={labelStyle}>Key</label>
+              <input
+                style={inputStyle}
+                value={field.key}
+                placeholder="title"
+                onChange={(e) => updateField(fieldIndex, { key: e.target.value })}
+              />
             </div>
 
             <label style={labelStyle}>Selectors (first match wins)</label>
